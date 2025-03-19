@@ -16,7 +16,7 @@ API_TOKEN = os.getenv("API_TOKEN", "8149820817:AAFSNytOOPq8Wd70l5DXykYMKqHADVibj
 
 # URL pro webhook (Koyeb přidělí doménu, např. https://your-app.koyeb.app)
 WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = f"https://your-app.koyeb.app{WEBHOOK_PATH}"  # Nahraďte "your-app" skutečným názvem aplikace na Koyeb
+WEBHOOK_URL = f"https://markbott.unacceptable-tandi-hexxx-7738253.koyeb.app{WEBHOOK_PATH}"  # Nahraďte "your-app" skutečným názvem aplikace na Koyeb
 
 # Port, na kterém Koyeb očekává, že aplikace poběží
 PORT = int(os.getenv("PORT", 8000))
