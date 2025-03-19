@@ -19,7 +19,7 @@ WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = f"https://your-app.koyeb.app{WEBHOOK_PATH}"  # Nahraďte "your-app" skutečným názvem aplikace na Koyeb
 
 # Port, na kterém Koyeb očekává, že aplikace poběží
-PORT = int(os.getenv("PORT", 8080))
+PORT = int(os.getenv("PORT", 8000))
 
 # Inicializace bota
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode="Markdown"))
