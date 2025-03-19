@@ -11,22 +11,27 @@ from aiohttp import web
 # Logging pro debugging
 logging.basicConfig(level=logging.INFO)
 
-# Token bota (ideálně by měl být uložen v proměnných prostředí)
+# Token bota
 API_TOKEN = os.getenv("API_TOKEN", "8149820817:AAFSNytOOPq8Wd70l5DXykYMKqHADVibj2M")
 
-# URL pro webhook (Koyeb přidělí doménu, např. https://your-app.koyeb.app)
+# Webhook nastavení
 WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = f"https://markbott.unacceptable-tandi-hexxx-7738253.koyeb.app{WEBHOOK_PATH}"  # Nahraďte "your-app" skutečným názvem aplikace na Koyeb
+WEBHOOK_URL = f"https://markbott.unacceptable-tandi-hexxx-7738253.koyeb.app{WEBHOOK_PATH}"
 
-# Port, na kterém Koyeb očekává, že aplikace poběží
+# Port
 PORT = int(os.getenv("PORT", 8000))
 
 # Inicializace bota
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode="Markdown"))
 dp = Dispatcher()
 
-# Paměť signálů (slovník pro ukládání signálů a počtu opakování)
+# Paměť signálů
 signal_memory = {}
+
+# Handler pro GET /webhook (pro health check)
+async def health_check(request):
+    logging.info("Received health check request")
+    return web.Response(status=200, text="OK")
 
 # Funkce pro nastavení webhooku
 async def on_startup():
@@ -35,7 +40,7 @@ async def on_startup():
         await bot.set_webhook(url=WEBHOOK_URL)
         logging.info(f"Webhook nastaven na: {WEBHOOK_URL}")
 
-# Handlery (stejné jako v původním kódu)
+# Handlery pro Telegram
 @dp.message()
 async def send_welcome(message: types.Message):
     if message.text == "/start":
@@ -188,15 +193,21 @@ async def send_signal(callback: CallbackQuery):
 async def start_bot():
     await on_startup()
     app = web.Application()
+    
+    # Přidání handleru pro GET /webhook (health check)
+    app.router.add_get(WEBHOOK_PATH, health_check)
+    
+    # Přidání aiogram webhook handleru (pro POST požadavky od Telegramu)
     webhook_request_handler = SimpleRequestHandler(dispatcher=dp, bot=bot)
     webhook_request_handler.register(app, path=WEBHOOK_PATH)
+    
     setup_application(app, dp, bot=bot)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
     logging.info(f"Bot běží na portu {PORT}")
-    await asyncio.Event().wait()  # Udržuje aplikaci běžící
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     asyncio.run(start_bot())
