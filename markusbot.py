@@ -8,18 +8,21 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQu
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
-# Logging pro debugging
-logging.basicConfig(level=logging.INFO)
+# Nastavení logování na podrobnější úroveň
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Token bota
 API_TOKEN = os.getenv("API_TOKEN", "8149820817:AAFSNytOOPq8Wd70l5DXykYMKqHADVibj2M")
+logging.info(f"API_TOKEN načten: {'Set' if API_TOKEN else 'Not set'}")
 
 # Webhook nastavení
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = f"https://markbott.unacceptable-tandi-hexxx-7738253.koyeb.app{WEBHOOK_PATH}"
+logging.info(f"WEBHOOK_URL nastaven na: {WEBHOOK_URL}")
 
 # Port
 PORT = int(os.getenv("PORT", 8000))
+logging.info(f"Port nastaven na: {PORT}")
 
 # Inicializace bota
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode="Markdown"))
@@ -33,16 +36,27 @@ async def health_check(request):
     logging.info("Received health check request")
     return web.Response(status=200, text="OK")
 
-# Funkce pro nastavení webhooku
+# Funkce pro nastavení webhooku s podrobným logováním
 async def on_startup():
-    webhook_info = await bot.get_webhook_info()
-    if webhook_info.url != WEBHOOK_URL:
-        await bot.set_webhook(url=WEBHOOK_URL)
-        logging.info(f"Webhook nastaven na: {WEBHOOK_URL}")
+    try:
+        logging.info("Začínám nastavovat webhook...")
+        webhook_info = await bot.get_webhook_info()
+        logging.info(f"Současné webhook info: {webhook_info}")
+        
+        if webhook_info.url != WEBHOOK_URL:
+            logging.info(f"Nastavuji nový webhook na: {WEBHOOK_URL}")
+            await bot.set_webhook(url=WEBHOOK_URL)
+            logging.info(f"Webhook úspěšně nastaven na: {WEBHOOK_URL}")
+        else:
+            logging.info("Webhook je již nastaven správně.")
+    except Exception as e:
+        logging.error(f"Chyba při nastavování webhooku: {str(e)}")
+        raise
 
 # Handlery pro Telegram
 @dp.message()
 async def send_welcome(message: types.Message):
+    logging.info(f"Přijatá zpráva: {message.text} od uživatele {message.from_user.id}")
     if message.text == "/start":
         user_name = message.from_user.first_name
         
@@ -56,11 +70,12 @@ async def send_welcome(message: types.Message):
             [InlineKeyboardButton(text="📱 Main Menu 📱", callback_data="main_menu")]
         ])
         
-        logging.info("Sending welcome message")
+        logging.info("Odesílám uvítací zprávu")
         await message.answer(response, reply_markup=keyboard)
 
 @dp.callback_query(lambda c: c.data == "main_menu")
 async def main_menu(callback: CallbackQuery):
+    logging.info(f"Přijatý callback: {callback.data}")
     response = ("*Main menu of AI Trading Academy 📈*\n\n"
                 "_Explore the bot interface, stay updated, and access trading signals._\n\n"
                 "_Use the buttons below to navigate:_\n\n"
@@ -74,12 +89,13 @@ async def main_menu(callback: CallbackQuery):
         [InlineKeyboardButton(text="☎️ Support", url="https://t.me/AllinBrooo")]
     ])
     
-    logging.info("Showing main menu")
+    logging.info("Zobrazuji hlavní menu")
     await callback.message.edit_text(response, reply_markup=keyboard)
     await callback.answer()
 
 @dp.callback_query(lambda c: c.data == "trade")
 async def trade_menu(callback: CallbackQuery):
+    logging.info(f"Přijatý callback: {callback.data}")
     response = "❓ *Select quote type:*"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -87,15 +103,16 @@ async def trade_menu(callback: CallbackQuery):
         [InlineKeyboardButton(text="⬅️ Back", callback_data="main_menu")]
     ])
     
-    logging.info("Showing trade menu")
+    logging.info("Zobrazuji menu pro obchodování")
     await callback.message.edit_text(response, reply_markup=keyboard)
     await callback.answer()
 
 @dp.callback_query(lambda c: c.data in ["stock", "otc"])
 async def select_signal_time(callback: CallbackQuery):
+    logging.info(f"Přijatý callback: {callback.data}")
     response = "⏰ *Select the signal time:*"
     quote_type = callback.data
-    logging.info(f"Generating signal time buttons with quote_type: {quote_type}")
+    logging.info(f"Generuji tlačítka pro výběr času signálu s quote_type: {quote_type}")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="1 Min", callback_data=f"{quote_type}:1min"),
@@ -109,15 +126,16 @@ async def select_signal_time(callback: CallbackQuery):
         [InlineKeyboardButton(text="⬅️ Back", callback_data="trade")]
     ])
     
-    logging.info(f"Generated keyboard with callback data: {keyboard.inline_keyboard}")
+    logging.info(f"Vygenerována klávesnice s callback daty: {keyboard.inline_keyboard}")
     await callback.message.edit_text(response, reply_markup=keyboard)
     await callback.answer()
 
 @dp.callback_query(lambda c: len(c.data.split(":")) == 2 and c.data.split(":")[0] in ["stock", "otc"] and c.data.split(":")[1] in ["1min", "5min", "7min", "10min", "15min", "5sec", "10sec", "15sec"])
 async def select_currency_pair(callback: CallbackQuery):
+    logging.info(f"Přijatý callback: {callback.data}")
     response = "⚙️ *Select a currency pair:*"
     quote_type, signal_time = callback.data.split(":")
-    logging.info(f"Generating currency pair buttons with quote_type: {quote_type}, signal_time: {signal_time}")
+    logging.info(f"Generuji tlačítka pro výběr měnového páru s quote_type: {quote_type}, signal_time: {signal_time}")
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="CAD/JPY", callback_data=f"{quote_type}:{signal_time}:cadjpy"),
@@ -136,16 +154,16 @@ async def select_currency_pair(callback: CallbackQuery):
         [InlineKeyboardButton(text="⬅️ Back", callback_data=f"{quote_type}")]
     ])
     
-    logging.info(f"Generated keyboard with callback data: {keyboard.inline_keyboard}")
+    logging.info(f"Vygenerována klávesnice s callback daty: {keyboard.inline_keyboard}")
     await callback.message.edit_text(response, reply_markup=keyboard)
     await callback.answer()
 
 @dp.callback_query(lambda c: len(c.data.split(":")) == 3 and c.data.split(":")[0] in ["stock", "otc"])
 async def send_signal(callback: CallbackQuery):
-    logging.info(f"Received callback data: {callback.data}")
+    logging.info(f"Přijatý callback: {callback.data}")
     quote_type, signal_time, currency_pair = callback.data.split(":")
     currency_pair = currency_pair.upper()
-    logging.info(f"Parsed data - quote_type: {quote_type}, signal_time: {signal_time}, currency_pair: {currency_pair}")
+    logging.info(f"Zpracovaná data - quote_type: {quote_type}, signal_time: {signal_time}, currency_pair: {currency_pair}")
 
     signal_key = f"{currency_pair}_{signal_time}_{quote_type}"
 
@@ -185,7 +203,7 @@ async def send_signal(callback: CallbackQuery):
         [InlineKeyboardButton(text="⬅️ Back", callback_data=f"{quote_type}:{signal_time}")]
     ])
     
-    logging.info(f"Sending signal response: {response}")
+    logging.info(f"Odesílám signál: {response}")
     await callback.message.edit_text(response, reply_markup=keyboard)
     await callback.answer()
 
